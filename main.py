@@ -5,6 +5,7 @@ import turtle
 import time
 import random
 
+random.seed()
 delay = 0.1
 
 # Score
@@ -101,25 +102,37 @@ while True:
 
     # Check for a collision with the border
     if head.xcor() > 290 or head.xcor() < -290 or head.ycor() > 290 or head.ycor() < -290:
-        time.sleep(1)
-        head.goto(0, 0)
-        head.direction = "stop"
+        randDir = random.randint(0, 1)
+        if head.direction == "up":
+            head.sety(y - 20)
+            if randDir:
+                go_left()
+            else:
+                go_right()
 
-        # Hide the segments
-        for segment in segments:
-            segment.goto(1000, 1000)
+        elif head.direction == "down":
+            head.sety(y + 20)
+            if randDir:
+                go_left()
+            else:
+                go_right()
 
-        # Clear the segments list
-        segments.clear()
+        elif head.direction == "left":
+            head.setx(x + 20)
+            if randDir:
+                go_up()
+            else:
+                go_down()
 
-        # Reset the score
-        score = 0
+        elif head.direction == "right":
+            head.setx(x - 20)
+            if randDir:
+                go_up()
+            else:
+                go_down()
 
-        # Reset the delay
-        delay = 0.1
 
-        pen.clear()
-        pen.write("Score: {}  High Score: {}".format(score, high_score), align="center", font=("Courier", 24, "normal"))
+
 
         # Check for a collision with the food
     if head.distance(food) < 20:
