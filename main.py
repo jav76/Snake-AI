@@ -1,192 +1,228 @@
-# Simple Snake Game in Python 3 for Beginners
-# By @TokyoEdTech
-
 import turtle
 import time
 import random
 
+random.seed()
 delay = 0.1
 
 # Score
-score = 0
-high_score = 0
+playerScore = 50
+playerHighScore = 50
+agentScore = 50
+agentHighScore = 50
 
 # Set up the screen
 wn = turtle.Screen()
-wn.title("Snake Game by @TokyoEdTech")
-wn.bgcolor("green")
+wn.title("Snake Game")
+wn.bgcolor("white")
 wn.setup(width=600, height=600)
 wn.tracer(0)  # Turns off the screen updates
 
-# Snake head
-head = turtle.Turtle()
-head.speed(0)
-head.shapesize(1, 1)
-head.shape("square")
-head.color("black")
-head.penup()
-head.goto(0, 0)
-head.direction = "stop"
-
-# Snake food
-food = turtle.Turtle()
-food.speed(0)
-food.shape("circle")
-food.color("red")
-food.penup()
-food.goto(0, 100)
-
-segments = []
-
-# Pen
-pen = turtle.Turtle()
-pen.speed(0)
-pen.shape("square")
-pen.color("white")
-pen.penup()
-pen.hideturtle()
-pen.goto(0, 260)
-pen.write("Score: 0  High Score: 0", align="center", font=("Courier", 24, "normal"))
+class stateSpace:
+    def __init__(self):
+        self.snakes = []
+        self.food = []
+    def addSnake(self, player=True):
+        self.snakes.append(snake(player))
+    def addFood(self):
+        self.food.append(food())
 
 
-# Functions
-def go_up():
-    if head.direction != "down":
-        head.direction = "up"
+class food:
+    def __init__(self, xPos=None, yPos=None):
+        self.head = turtle.Turtle()
+        self.head.speed(0)
+        self.head.shape("circle")
+        self.head.color("red")
+        self.head.penup()
+        if xPos is None:
+            xPos = random.randint(-290, 290)
+        if yPos is None:
+            yPos = random.randint(-290, 290)
+        self.head.goto(xPos, yPos)
+
+class snake:
+    def __init__(self, name, player=True):
+        self.player = player
+        self.name = name
+        self.segments = []
+        self.head = turtle.Turtle()
+        self.head.speed(0)
+        self.head.shapesize(1, 1)
+        self.head.shape("square")
+        self.head.color("black")
+        self.head.penup()
+        self.head.goto(0, 0)
+        self.head.direction = "stop"
+        if self.player:
+            self.head.color("#00FF00") # Green
+            wn.listen()
+            wn.onkeypress(self.goUp, "w")
+            wn.onkeypress(self.goDown, "s")
+            wn.onkeypress(self.goLeft, "a")
+            wn.onkeypress(self.goRight, "d")
+
+    def addSegment(self):
+        newSeg = turtle.Turtle()
+        newSeg.speed(0)
+        newSeg.shape("square")
+        if self.player:
+            newSeg.color("#80FF80") # Lighter green
+        else:
+            newSeg.color("grey")
+        newSeg.penup()
+        self.segments.append(newSeg)
+
+    def goUp(self):
+        if self.head.direction != "down":
+            self.head.direction = "up"
+    def goDown(self):
+        if self.head.direction != "up":
+            self.head.direction = "down"
+    def goLeft(self):
+        if self.head.direction != "right":
+            self.head.direction = "left"
+    def goRight(self):
+        if self.head.direction != "left":
+            self.head.direction = "right"
+
+    def move(self):
+        for i in range(len(self.segments) - 1, 0, -1):
+            x = self.segments[i - 1].xcor()
+            y = self.segments[i - 1].ycor()
+            self.segments[i].goto(x, y)
+        if len(self.segments) > 0:
+            x = self.head.xcor()
+            y = self.head.ycor()
+            self.segments[0].goto(x, y)
+        if self.head.direction == "up":
+            y = self.head.ycor()
+            self.head.sety(y + 20)
+        if self.head.direction == "down":
+            y = self.head.ycor()
+            self.head.sety(y - 20)
+        if self.head.direction == "left":
+            x = self.head.xcor()
+            self.head.setx(x - 20)
+        if self.head.direction == "right":
+            x = self.head.xcor()
+            self.head.setx(x + 20)
 
 
-def go_down():
-    if head.direction != "up":
-        head.direction = "down"
+playerPen = turtle.Turtle()
+playerPen.speed(0)
+playerPen.penup()
+playerPen.hideturtle()
+playerPen.goto(-280, 240)
+playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align = "left",
+                font=("Courier", 16, "normal"))
+
+agentPen = turtle.Turtle()
+agentPen.speed(0)
+agentPen.penup()
+agentPen.hideturtle()
+agentPen.goto(280, 240)
+agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align = "right",
+               font=("Courier", 16, "normal"))
+
+miscPen = turtle.Turtle()
+miscPen.speed(0)
+miscPen.penup()
+miscPen.hideturtle()
+miscPen.goto(0, 200)
 
 
-def go_left():
-    if head.direction != "right":
-        head.direction = "left"
 
-
-def go_right():
-    if head.direction != "left":
-        head.direction = "right"
-
-
-def move():
-    if head.direction == "up":
-        y = head.ycor()
-        head.sety(y + 20)
-
-    if head.direction == "down":
-        y = head.ycor()
-        head.sety(y - 20)
-
-    if head.direction == "left":
-        x = head.xcor()
-        head.setx(x - 20)
-
-    if head.direction == "right":
-        x = head.xcor()
-        head.setx(x + 20)
-
-
-# Keyboard bindings
-wn.listen()
-wn.onkeypress(go_up, "w")
-wn.onkeypress(go_down, "s")
-wn.onkeypress(go_left, "a")
-wn.onkeypress(go_right, "d")
-
+currentState = stateSpace()
+currentState.addSnake("player")
+currentState.addFood()
+wn.update()
 # Main game loop
 while True:
     wn.update()
 
-    # Check for a collision with the border
-    if head.xcor() > 290 or head.xcor() < -290 or head.ycor() > 290 or head.ycor() < -290:
-        time.sleep(1)
-        head.goto(0, 0)
-        head.direction = "stop"
+    # Check for a collisions
+    collision = False
+    collisions = []
+    for i in currentState.snakes:
 
-        # Hide the segments
-        for segment in segments:
-            segment.goto(1000, 1000)
+        # Single snake collision with the border
+        if i.head.xcor() > 290 or i.head.xcor() < -290 or i.head.ycor() > 290 or i.head.ycor() < -290:
+            collision = True
+            print("Snake collision with border")
+            if i not in collisions:
+                collisions.append(i)
 
-        # Clear the segments list
-        segments.clear()
+        # Snake collision with itself
+        for segment in i.segments:
+            if segment.distance(i.head) < 20:
+                collision = True
+                print("Snake collision with itself")
+                if i not in collisions:
+                    collisions.append(i)
 
-        # Reset the score
-        score = 0
+        # Snake collision with other snake
+        for j in currentState.snakes:
+            for segment in j.segments:
+                if segment.distance(i.head) < 20:
+                    print("Snake collision with other snake")
+                    collision = True
+                    if i not in collisions:
+                        collisions.append(i)
 
-        # Reset the delay
-        delay = 0.1
+        # Snake collision with food
+        for j in currentState.food:
+            if j.head.distance(i.head) < 20:
+                print("Snake collision with food")
+                foodX = random.randint(-270, 270)
+                foodY = random.randint(-270, 270)
+                j.head.goto(foodX, foodY)
 
-        pen.clear()
-        pen.write("Score: {}  High Score: {}".format(score, high_score), align="center", font=("Courier", 24, "normal"))
+                i.addSegment()
+                if i.player:
+                    playerScore += 25
+                    if playerScore > playerHighScore:
+                        playerHighScore = playerScore
+                else:
+                    agentScore += 25
+                    if agentScore > agentHighScore:
+                        agentHighScore = agentScore
 
-        # Check for a collision with the food
-    if head.distance(food) < 20:
-        # Move the food to a random spot
-        x = random.randint(-290, 290)
-        y = random.randint(-290, 290)
-        food.goto(x, y)
+    if collision:
+        for i in collisions:
+            i.head.color("red")
+        wn.update()
+        time.sleep(2)
+        for i in collisions:
+            i.head.direction = "stop"
+            i.head.goto(0, 0)
+            if i.player:
+                i.head.color("#00FF00")
+            else:
+                i.head.color("black")
+        for i in currentState.snakes:
+            for j in i.segments:
+                j.goto(1000, 1000)
+            i.segments.clear()
+        playerScore = 50
+        agentScore = 50
+    playerPen.clear()
+    playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align="left",
+                    font=("Courier", 16, "normal"))
+    agentPen.clear()
+    agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align="right",
+                   font=("Courier", 16, "normal"))
 
-        # Add a segment
-        new_segment = turtle.Turtle()
-        new_segment.speed(0)
-        new_segment.shape("square")
-        new_segment.color("grey")
-        new_segment.penup()
-        segments.append(new_segment)
-
-        # Shorten the delay
-        delay -= 0.001
-
-        # Increase the score
-        score += 10
-
-        if score > high_score:
-            high_score = score
-
-        pen.clear()
-        pen.write("Score: {}  High Score: {}".format(score, high_score), align="center", font=("Courier", 24, "normal"))
-
-        # Move the end segments first in reverse order
-    for index in range(len(segments) - 1, 0, -1):
-        x = segments[index - 1].xcor()
-        y = segments[index - 1].ycor()
-        segments[index].goto(x, y)
-
-    # Move segment 0 to where the head is
-    if len(segments) > 0:
-        x = head.xcor()
-        y = head.ycor()
-        segments[0].goto(x, y)
-
-    move()
-
-    # Check for head collision with the body segments
-    for segment in segments:
-        if segment.distance(head) < 20:
-            time.sleep(1)
-            head.goto(0, 0)
-            head.direction = "stop"
-
-            # Hide the segments
-            for segment in segments:
-                segment.goto(1000, 1000)
-
-            # Clear the segments list
-            segments.clear()
-
-            # Reset the score
-            score = 0
-
-            # Reset the delay
-            delay = 0.1
-
-            # Update the score display
-            pen.clear()
-            pen.write("Score: {}  High Score: {}".format(score, high_score), align="center",
-                      font=("Courier", 24, "normal"))
+    for i in currentState.snakes:
+        i.move()
+        if i.head.direction != "stop":
+            if i.player:
+                playerScore -= 1
+            else:
+                agentScore -= 1
 
     time.sleep(delay)
 
 wn.mainloop()
+
+# Based on snake code by by @TokyoEdTech
