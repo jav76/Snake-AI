@@ -22,11 +22,13 @@ class stateSpace:
     def __init__(self):
         self.snakes = []
         self.food = []
-    def addSnake(self, player=True):
-        self.snakes.append(snake(player))
+    def addSnake(self, name, player=True):
+        newSnake = snake(name, player)
+        newSnake.head.goto(random.randint(-200, 200), random.randint(-200, 200))
+        self.snakes.append(newSnake)
     def addFood(self):
-        self.food.append(food())
-
+        newFood = food()
+        self.food.append(newFood)
 
 class food:
     def __init__(self, xPos=None, yPos=None):
@@ -136,10 +138,26 @@ miscPen.goto(0, 200)
 currentState = stateSpace()
 currentState.addSnake("player")
 currentState.addFood()
+currentState.addSnake("agent", False)
+currentState.addFood()
 wn.update()
 # Main game loop
 while True:
     wn.update()
+
+    # Agent control
+    for i in currentState.snakes:
+        if not i.player:
+            rand = random.randint(1, 4)
+            if rand == 1:
+                i.goUp()
+            elif rand == 2:
+                i.goDown()
+            elif rand == 3:
+                i.goLeft()
+            else:
+                i.goRight()
+
 
     # Check for a collisions
     collision = [False]
