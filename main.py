@@ -142,33 +142,29 @@ while True:
     wn.update()
 
     # Check for a collisions
-    collision = False
-    collisions = []
+    collision = [False]
     for i in currentState.snakes:
 
         # Single snake collision with the border
         if i.head.xcor() > 290 or i.head.xcor() < -290 or i.head.ycor() > 290 or i.head.ycor() < -290:
-            collision = True
+            collision[0] = True
             print("Snake collision with border")
-            if i not in collisions:
-                collisions.append(i)
+            collision.append([i, "border"])
 
         # Snake collision with itself
         for segment in i.segments:
             if segment.distance(i.head) < 20:
-                collision = True
+                collision[0] = True
                 print("Snake collision with itself")
-                if i not in collisions:
-                    collisions.append(i)
+                collision.append([i, "self"])
 
         # Snake collision with other snake
         for j in currentState.snakes:
             for segment in j.segments:
                 if segment.distance(i.head) < 20:
                     print("Snake collision with other snake")
-                    collision = True
-                    if i not in collisions:
-                        collisions.append(i)
+                    collision[0] = True
+                    collision.append([i, "other"])
 
         # Snake collision with food
         for j in currentState.food:
@@ -188,18 +184,30 @@ while True:
                     if agentScore > agentHighScore:
                         agentHighScore = agentScore
 
-    if collision:
-        for i in collisions:
-            i.head.color("red")
+    if collision[0]:
+        message = ""
+        if collision[1][0].player:
+            message += "Player collided with "
+        else:
+            message += "Agent collided with "
+        if collision[1][1] == "border":
+            message += "the border."
+        elif collision[1][1] == "self":
+            message += "themselves."
+        elif collision[1][1] == "other":
+            message += "another snake."
+        miscPen.write(message, align="center", font=("Courier", 16, "normal"))
+
+
+        collision[1][0].head.color("red")
         wn.update()
         time.sleep(2)
-        for i in collisions:
-            i.head.direction = "stop"
-            i.head.goto(0, 0)
-            if i.player:
-                i.head.color("#00FF00")
-            else:
-                i.head.color("black")
+        collision[1][0].head.direction = "stop"
+        collision[1][0].head.goto(0, 0)
+        if collision[1][0].player:
+            collision[1][0].head.color("#00FF00")
+        else:
+            collision[1][0].head.color("black")
         for i in currentState.snakes:
             for j in i.segments:
                 j.goto(1000, 1000)
@@ -212,6 +220,7 @@ while True:
     agentPen.clear()
     agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align="right",
                    font=("Courier", 16, "normal"))
+    miscPen.clear()
 
     for i in currentState.snakes:
         i.move()
