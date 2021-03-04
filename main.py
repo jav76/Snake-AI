@@ -18,17 +18,75 @@ wn.bgcolor("white")
 wn.setup(width=600, height=600)
 wn.tracer(0)  # Turns off the screen updates
 
+def posToTup(t):
+    return (t.pos()[0], t.pos()[1])
+
 class stateSpace:
     def __init__(self):
         self.snakes = []
         self.food = []
+        self.walls = []
+        self.traps = []
     def addSnake(self, name, player=True):
         newSnake = snake(name, player)
         newSnake.head.goto(random.randint(-200, 200), random.randint(-200, 200))
         self.snakes.append(newSnake)
-    def addFood(self):
-        newFood = food()
-        self.food.append(newFood)
+    def addFood(self, xPos=None, yPos=None):
+        if self.getObject(xPos, yPos)[1] == None:
+            newFood = food(xPos, yPos)
+            self.food.append(newFood)
+            return 0
+        else:
+            return 1
+
+    def addWall(self, xPos, yPos):
+        if self.getObject(xPos, yPos)[1] == None:
+            newWall = wall(xPos, yPos)
+            self.walls.append(newWall)
+            return 0
+        else:
+            return 1
+    def getObject(self, xPos, yPos):
+
+        # snakes
+        for i in self.snakes:
+            pos = posToTup(i.head)
+            if pos == (xPos, yPos):
+                return ["head", i]
+            for j in i.segments:
+                pos = posToTup(j.head)
+                if pos == (xPos, yPos):
+                    return ["segment", j]
+
+        # food
+        for i in self.food:
+            pos = posToTup(i.head)
+            if pos == (xPos, yPos):
+                return ["food", i]
+
+        # walls
+        for i in self.walls:
+            pos = posToTup(i.head)
+            if pos == (xPos, yPos):
+                return ["wall", i]
+
+        # traps
+        for i in self.traps:
+            pos = posToTup(i.head)
+            if pos == (xPos, yPos):
+                return ["trap", i]
+        return ["empty", None]
+
+
+class wall:
+    def __init__(self, xPos, yPos):
+        self.head = turtle.Turtle()
+        self.head.speed(0)
+        self.head.color("black")
+        self.head.shape("square")
+        self.head.penup()
+        self.head.goto(xPos, yPos)
+
 
 class food:
     def __init__(self, xPos=None, yPos=None):
@@ -52,7 +110,7 @@ class snake:
         self.head.speed(0)
         self.head.shapesize(1, 1)
         self.head.shape("square")
-        self.head.color("black")
+        self.head.color("grey")
         self.head.penup()
         self.head.goto(0, 0)
         self.head.direction = "stop"
@@ -110,7 +168,7 @@ class snake:
             x = self.head.xcor()
             self.head.setx(x + 20)
 
-
+"""
 playerPen = turtle.Turtle()
 playerPen.speed(0)
 playerPen.penup()
@@ -118,7 +176,7 @@ playerPen.hideturtle()
 playerPen.goto(-280, 240)
 playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align = "left",
                 font=("Courier", 16, "normal"))
-
+"""
 agentPen = turtle.Turtle()
 agentPen.speed(0)
 agentPen.penup()
@@ -136,10 +194,19 @@ miscPen.goto(0, 200)
 
 
 currentState = stateSpace()
-currentState.addSnake("player")
-currentState.addFood()
+#currentState.addSnake("player")
+#currentState.addFood()
 currentState.addSnake("agent", False)
 currentState.addFood()
+
+wallX = 50
+wallY = 50
+for i in range(1, 5):
+    currentState.addWall(wallX, wallY)
+    wallX = wallX + 20 * random.choice([-1, 1])
+    wallY = wallY + 20 * random.choice([-1, 1])
+
+
 wn.update()
 # Main game loop
 while True:
@@ -202,6 +269,13 @@ while True:
                     if agentScore > agentHighScore:
                         agentHighScore = agentScore
 
+        # Snake collision with wall
+        for j in currentState.walls:
+            if j.head.distance(i.head) < 20:
+                print("Snake collision with wall")
+                collision[0] = True
+                collision.append([i, "wall"])
+
     if collision[0]:
         message = ""
         if collision[1][0].player:
@@ -212,6 +286,8 @@ while True:
             message += "the border."
         elif collision[1][1] == "self":
             message += "themselves."
+        elif collision[1][1] == "wall":
+            message += "a wall"
         elif collision[1][1] == "other":
             message += "another snake."
         miscPen.write(message, align="center", font=("Courier", 16, "normal"))
@@ -232,9 +308,11 @@ while True:
             i.segments.clear()
         playerScore = 50
         agentScore = 50
+    """
     playerPen.clear()
     playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align="left",
                     font=("Courier", 16, "normal"))
+    """
     agentPen.clear()
     agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align="right",
                    font=("Courier", 16, "normal"))
