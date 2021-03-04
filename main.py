@@ -21,6 +21,9 @@ wn.tracer(0)  # Turns off the screen updates
 def posToTup(t):
     return (t.pos()[0], t.pos()[1])
 
+def getDistance(x1, y1, x2, y2):
+    return ( (x2 - x1)**2 + (y2 - y1)**2 ) ** (1/2)
+
 class stateSpace:
     def __init__(self):
         self.snakes = []
@@ -32,20 +35,33 @@ class stateSpace:
         newSnake.head.goto(random.randint(-200, 200), random.randint(-200, 200))
         self.snakes.append(newSnake)
     def addFood(self, xPos=None, yPos=None):
-        if self.getObject(xPos, yPos)[1] == None:
+        if self.isEmpty(xPos, yPos):
             newFood = food(xPos, yPos)
             self.food.append(newFood)
             return 0
         else:
             return 1
-
     def addWall(self, xPos, yPos):
-        if self.getObject(xPos, yPos)[1] == None:
+        if self.isEmpty(xPos, yPos):
             newWall = wall(xPos, yPos)
             self.walls.append(newWall)
             return 0
         else:
             return 1
+    def addTrap(self, xPos, yPos):
+        if self.isEmpty(xPos, yPos):
+            newTrap = trap(xPos, yPos)
+            self.traps.append(newTrap)
+            return 0
+        else:
+            return 1
+
+    def isEmpty(self, xPos, yPos):
+        if self.getObject(xPos, yPos)[1] == None:
+            return True
+        else:
+            return False
+
     def getObject(self, xPos, yPos):
 
         # snakes
@@ -87,13 +103,22 @@ class wall:
         self.head.penup()
         self.head.goto(xPos, yPos)
 
+class trap:
+    def __init__(self, xPos, yPos):
+        self.head = turtle.Turtle()
+        self.head.speed(0)
+        self.head.color("red")
+        self.head.shape("triangle")
+        self.head.penup()
+        self.head.goto(xPos, yPos)
+
 
 class food:
     def __init__(self, xPos=None, yPos=None):
         self.head = turtle.Turtle()
         self.head.speed(0)
         self.head.shape("circle")
-        self.head.color("red")
+        self.head.color("blue")
         self.head.penup()
         if xPos is None:
             xPos = random.randint(-290, 290)
@@ -206,6 +231,7 @@ for i in range(1, 5):
     wallX = wallX + 20 * random.choice([-1, 1])
     wallY = wallY + 20 * random.choice([-1, 1])
 
+currentState.addTrap(random.randint(-15, 15) * 20, random.randint(-15, 15) * 20)
 
 wn.update()
 # Main game loop
@@ -276,6 +302,13 @@ while True:
                 collision[0] = True
                 collision.append([i, "wall"])
 
+        # Snake collision with trap
+        for j in currentState.traps:
+            if j.head.distance(i.head) < 20:
+                print("Snake collision with trap")
+                collision[0] = True
+                collision.append([i, "trap"])
+
     if collision[0]:
         message = ""
         if collision[1][0].player:
@@ -288,6 +321,8 @@ while True:
             message += "themselves."
         elif collision[1][1] == "wall":
             message += "a wall"
+        elif collision[1][1] == "trap":
+            message += "a trap"
         elif collision[1][1] == "other":
             message += "another snake."
         miscPen.write(message, align="center", font=("Courier", 16, "normal"))
