@@ -43,7 +43,6 @@ class stateSpace:
         self.food = []
         self.walls = []
         self.traps = []
-        self.space = [[[0]] * 15] * 15
     def addSnake(self, name, player=True):
         newSnake = snake(name, player)
         newSnake.head.goto(random.randint(-200, 200), random.randint(-200, 200))
@@ -169,7 +168,7 @@ class snake:
         if self.player:
             newSeg.color("#80FF80") # Lighter green
         else:
-            newSeg.color("grey")
+            newSeg.color("#B4B4B4") # Lighter grey
         newSeg.penup()
         self.segments.append(newSeg)
 
@@ -211,13 +210,13 @@ class searchNode:
     def successorNodes(self, ss):
         nodes = []
         # If the next space up is empty, add it to the successor nodes list
-        if ss.getObject(self.pos[0], self.pos[1] + 20)[0] == "empty":
+        if ss.isEmpty(self.pos[0], self.pos[1] + 20):
             nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20)))
-        if ss.getObject(self.pos[0], self.pos[1] - 20)[0] == "empty":
+        if ss.isEmpty(self.pos[0], self.pos[1] - 20):
             nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20)))
-        if ss.getObject(self.pos[0] + 20, self.pos[1])[0] == "empty":
+        if ss.isEmpty(self.pos[0] + 20, self.pos[1]):
             nodes.append(searchNode("right", (self.pos[0], self.pos[1] - 20)))
-        if ss.getObject(self.pos[0] - 20, self.pos[1])[0] == "empty":
+        if ss.isEmpty(self.pos[0] - 20, self.pos[1]):
             nodes.append(searchNode("left", (self.pos[0], self.pos[1] - 20)))
 
 
@@ -368,7 +367,7 @@ while True:
         if collision[1][0].player:
             collision[1][0].head.color("#00FF00")
         else:
-            collision[1][0].head.color("black")
+            collision[1][0].head.color("grey")
         for i in currentState.snakes:
             for j in i.segments:
                 j.goto(1000, 1000)
