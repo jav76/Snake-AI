@@ -24,12 +24,26 @@ def posToTup(t):
 def getDistance(x1, y1, x2, y2):
     return ( (x2 - x1)**2 + (y2 - y1)**2 ) ** (1/2)
 
+def reverseDirection(direction):
+    if direction == "up":
+        return "down"
+    elif direction == "down":
+        return "up"
+    elif direction == "left":
+        return "right"
+    elif direction == "right":
+        return "left"
+    else:
+        return "stop"
+
+
 class stateSpace:
     def __init__(self):
         self.snakes = []
         self.food = []
         self.walls = []
         self.traps = []
+        self.space = [[[0]] * 15] * 15
     def addSnake(self, name, player=True):
         newSnake = snake(name, player)
         newSnake.head.goto(random.randint(-200, 200), random.randint(-200, 200))
@@ -138,14 +152,15 @@ class snake:
         self.head.color("grey")
         self.head.penup()
         self.head.goto(0, 0)
+        self.head.directions = []
         self.head.direction = "stop"
         if self.player:
             self.head.color("#00FF00") # Green
             wn.listen()
-            wn.onkeypress(self.goUp, "w")
-            wn.onkeypress(self.goDown, "s")
-            wn.onkeypress(self.goLeft, "a")
-            wn.onkeypress(self.goRight, "d")
+            wn.onkeypress(self.addDirection("up"), "w")
+            wn.onkeypress(self.addDirection("down"), "s")
+            wn.onkeypress(self.addDirection("left"), "a")
+            wn.onkeypress(self.addDirection("right"), "d")
 
     def addSegment(self):
         newSeg = turtle.Turtle()
@@ -158,20 +173,15 @@ class snake:
         newSeg.penup()
         self.segments.append(newSeg)
 
-    def goUp(self):
-        if self.head.direction != "down":
-            self.head.direction = "up"
-    def goDown(self):
-        if self.head.direction != "up":
-            self.head.direction = "down"
-    def goLeft(self):
-        if self.head.direction != "right":
-            self.head.direction = "left"
-    def goRight(self):
-        if self.head.direction != "left":
-            self.head.direction = "right"
+
+    def addDirection(self, direction):
+        if direction != reverseDirection(self.head.direction):
+            self.head.directions.append(direction)
+        else:
+            self.head.directions.append(self.head.direction)
 
     def move(self):
+        self.head.direction = self.head.directions.pop(0)
         for i in range(len(self.segments) - 1, 0, -1):
             x = self.segments[i - 1].xcor()
             y = self.segments[i - 1].ycor()
@@ -192,6 +202,28 @@ class snake:
         if self.head.direction == "right":
             x = self.head.xcor()
             self.head.setx(x + 20)
+
+class searchNode:
+    def __init__(self, direction, pos):
+        self.direction = direction
+        self.pos = pos
+
+    def successorNodes(self, ss):
+        nodes = []
+        # If the next space up is empty, add it to the successor nodes list
+        if ss.getObject(self.pos[0], self.pos[1] + 20)[0] == "empty":
+            nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20)))
+        if ss.getObject(self.pos[0], self.pos[1] - 20)[0] == "empty":
+            nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20)))
+        if ss.getObject(self.pos[0] + 20, self.pos[1])[0] == "empty":
+            nodes.append(searchNode("right", (self.pos[0], self.pos[1] - 20)))
+        if ss.getObject(self.pos[0] - 20, self.pos[1])[0] == "empty":
+            nodes.append(searchNode("left", (self.pos[0], self.pos[1] - 20)))
+
+
+
+
+
 
 """
 playerPen = turtle.Turtle()
@@ -228,10 +260,10 @@ wallX = 50
 wallY = 50
 for i in range(1, 5):
     currentState.addWall(wallX, wallY)
-    wallX = wallX + 20 * random.choice([-1, 1])
-    wallY = wallY + 20 * random.choice([-1, 1])
+    wallX = wallX + 20 * random.choice([-1, 0, 1])
+    wallY = wallY + 20 * random.choice([-1, 0, 1])
 
-currentState.addTrap(random.randint(-15, 15) * 20, random.randint(-15, 15) * 20)
+currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
 
 wn.update()
 # Main game loop
@@ -243,13 +275,13 @@ while True:
         if not i.player:
             rand = random.randint(1, 4)
             if rand == 1:
-                i.goUp()
+                i.addDirection("up")
             elif rand == 2:
-                i.goDown()
+                i.addDirection("down")
             elif rand == 3:
-                i.goLeft()
+                i.addDirection("left")
             else:
-                i.goRight()
+                i.addDirection("right")
 
 
     # Check for a collisions
