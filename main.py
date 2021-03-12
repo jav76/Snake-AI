@@ -88,7 +88,7 @@ class stateSpace:
             if i.head.distance((xPos, yPos)) < 20:
                 return ["head", i]
             for j in i.segments:
-                pos = posToTup(j.head)
+                pos = posToTup(j)
                 if pos == (xPos, yPos):
                     return ["segment", j]
 
@@ -165,7 +165,7 @@ class snake:
         self.head.penup()
         self.head.goto(0, 0)
         self.head.directions = []
-        self.head.direction = "stop"
+        self.head.direction = "up"
         if self.player:
             self.head.color("#00FF00") # Green
             wn.listen()
@@ -184,6 +184,10 @@ class snake:
             newSeg.color("#B4B4B4") # Lighter grey
         newSeg.penup()
         self.segments.append(newSeg)
+        for i in range(len(self.segments) - 1, 0, -1):
+            x = self.segments[i - 1].xcor()
+            y = self.segments[i - 1].ycor()
+            self.segments[i].goto(x, y)
 
 
     def addDirection(self, direction):
@@ -376,6 +380,7 @@ while True:
                 i.addDirection("right")
             """
 
+            """
             # Run a search one time at the start and add the search path to the direction queue
             # Searches currently seem to have an issue with "switching directions" from the initial given direction
             if not searched:
@@ -385,6 +390,14 @@ while True:
                     print(j.direction)
                     i.addDirection(j.direction)
                 searched = True
+            """
+
+            if len(i.head.directions) == 0:
+                path = i.bfs(currentState, posToTup(currentState.food[0].head))
+                for j in path:
+                    i.addDirection(j.direction)
+
+
 
 
     # Check for a collisions
