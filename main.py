@@ -77,9 +77,11 @@ class stateSpace:
 
     def getObject(self, xPos, yPos):
 
-        # snakes
+
         if xPos == None or yPos == None:
             return ["empty", None]
+
+        # snakes
         for i in self.snakes:
             pos = posToTup(i.head)
             dist = getDistance(pos[0], pos[1], xPos, yPos)
@@ -185,10 +187,16 @@ class snake:
 
 
     def addDirection(self, direction):
-        if direction != reverseDirection(self.head.direction):
-            self.head.directions.append(direction)
+        """
+        if self.head.directions:
+            if direction != reverseDirection(self.head.directions[-1]):
+                self.head.directions.append(direction)
+            else:
+                self.head.directions.append(self.head.direction)
         else:
             self.head.directions.append(self.head.direction)
+        """
+        self.head.directions.append(direction)
 
     def move(self):
         self.head.direction = self.head.directions.pop(0)
@@ -294,6 +302,11 @@ class searchNode:
         if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
             nodes.append(searchNode("left", (self.pos[0] - 20, self.pos[1]), self.path))
 
+        if nodes:
+            for i in nodes:
+                if i.direction == reverseDirection(self.direction):
+                    nodes.remove(i)
+
         return nodes
 
 
@@ -366,7 +379,7 @@ while True:
             # Run a search one time at the start and add the search path to the direction queue
             # Searches currently seem to have an issue with "switching directions" from the initial given direction
             if not searched:
-                i.head.direction = "up"
+                i.head.direction = "down"
                 path = i.bfs(currentState, posToTup(currentState.food[0].head))
                 for j in path:
                     print(j.direction)
