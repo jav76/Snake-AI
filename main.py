@@ -24,6 +24,12 @@ def posToTup(t):
 def getDistance(x1, y1, x2, y2):
     return ( (x2 - x1)**2 + (y2 - y1)**2 ) ** (1/2)
 
+def getManhattan(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)
+
+def heuristic(node):
+    return ( getDistance(node.pos[0], node.pos[1], node.goal[0], node.goal[1]) + getManhattan(node.pos[0], node.pos[1], node.goal[0], node.goal[1]) ) * 0.9
+
 def reverseDirection(direction):
     if direction == "up":
         return "down"
@@ -132,26 +138,28 @@ class stateSpace:
 
 
 class wall:
-    def __init__(self, xPos, yPos):
+    def __init__(self, xPos, yPos, cost=10):
         self.head = turtle.Turtle()
         self.head.speed(0)
         self.head.color("black")
         self.head.shape("square")
         self.head.penup()
         self.head.goto(xPos, yPos)
+        self.cost = cost
 
 class trap:
-    def __init__(self, xPos, yPos):
+    def __init__(self, xPos, yPos, cost=50):
         self.head = turtle.Turtle()
         self.head.speed(0)
         self.head.color("red")
         self.head.shape("triangle")
         self.head.penup()
         self.head.goto(xPos, yPos)
+        self.cost = cost
 
 
 class food:
-    def __init__(self, xPos=None, yPos=None):
+    def __init__(self, xPos=None, yPos=None, reward=10):
         self.head = turtle.Turtle()
         self.head.speed(0)
         self.head.shape("circle")
@@ -162,6 +170,7 @@ class food:
         if yPos is None:
             yPos = random.randint(-290, 290)
         self.head.goto(xPos, yPos)
+        self.reward = reward
 
 
 class snake:
@@ -241,7 +250,7 @@ class snake:
     def dfs(self, ss, goal):
         visited = []
         queue = []
-        startNode = searchNode(self.head.direction, posToTup(self.head), [])
+        startNode = searchNode(self.head.direction, posToTup(self.head), [], goal)
 
         queue.append(startNode)
 
@@ -265,7 +274,7 @@ class snake:
     def bfs(self, ss, goal):
         visited = []
         queue = []
-        startNode = searchNode(self.head.direction, posToTup(self.head), [])
+        startNode = searchNode(self.head.direction, posToTup(self.head), [], goal)
 
         queue.append(startNode)
 
@@ -285,13 +294,66 @@ class snake:
                     queue.append(i)
         return None
 
+    def ucs(self, ss, goal):
+        visited = []
+        queue = []
+        startNode = searchNode(self.head.direction, posToTup(self.head), [], goal)
+
+        queue.append(startNode)
+
+        while queue:
+            queue.sort(key = lambda x: x.cost)
+            currentNode = queue.pop(0)
+            print(f"Current direction: {currentNode.direction}")
+            print(f"Current pos: {currentNode.pos}")
+            print(f"Distance: {getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) }")
+            if getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) < 20:
+                currentNode.path.append(currentNode)
+                return currentNode.path
+            visited.append(currentNode)
+            for i in currentNode.successorNodes(ss):
+                if i not in visited:
+                    visited.append(i)
+                    i.path = currentNode.path.copy()
+                    i.path.append(i)
+                    queue.append(i)
+        return None
+
+    def aStar(self, ss, goal):
+        visited = []
+        queue = []
+        startNode = searchNode(self.head.direction, posToTup(self.head), [], goal)
+
+        queue.append(startNode)
+
+        while queue:
+            queue.sort(key = heuristic)
+            currentNode = queue.pop(0)
+            print(f"Current direction: {currentNode.direction}")
+            print(f"Current pos: {currentNode.pos}")
+            print(f"Distance: {getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) }")
+            if getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) < 20:
+                currentNode.path.append(currentNode)
+                return currentNode.path
+            visited.append(currentNode)
+            for i in currentNode.successorNodes(ss):
+                if i not in visited:
+                    visited.append(i)
+                    i.path = currentNode.path.copy()
+                    i.path.append(i)
+                    queue.append(i)
+        return None
+
+
 
 
 class searchNode:
-    def __init__(self, direction, pos, path):
+    def __init__(self, direction, pos, path, goal, cost=False):
         self.direction = direction
         self.pos = pos
         self.path = path
+        self.cost = cost
+        self.goal = goal
 
     def __eq__(self, other):
         return self.direction == other.direction and self.pos == other.pos
@@ -301,28 +363,54 @@ class searchNode:
 
     def successorNodes(self, ss):
         nodes = []
-        # If the next space up is empty, add it to the successor nodes list
-        nextObject = ss.getObject(self.pos[0], self.pos[1] + 20)[0]
-        if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
-            nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20), self.path))
+        if self.cost == False:
+            # If the next space up is empty, add it to the successor nodes list
+            nextObject = ss.getObject(self.pos[0], self.pos[1] + 20)[0]
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+                nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20), self.path, self.goal))
 
-        nextObject = ss.getObject(self.pos[0], self.pos[1] - 20)[0]
-        if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
-            nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20), self.path))
+            nextObject = ss.getObject(self.pos[0], self.pos[1] - 20)[0]
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+                nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20), self.path, self.goal))
 
-        nextObject = ss.getObject(self.pos[0] + 20, self.pos[1])[0]
-        if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
-            nodes.append(searchNode("right", (self.pos[0] + 20, self.pos[1]), self.path))
+            nextObject = ss.getObject(self.pos[0] + 20, self.pos[1])[0]
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+                nodes.append(searchNode("right", (self.pos[0] + 20, self.pos[1]), self.path, self.goal))
 
-        nextObject = ss.getObject(self.pos[0] - 20, self.pos[1])[0]
-        if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
-            nodes.append(searchNode("left", (self.pos[0] - 20, self.pos[1]), self.path))
+            nextObject = ss.getObject(self.pos[0] - 20, self.pos[1])[0]
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+                nodes.append(searchNode("left", (self.pos[0] - 20, self.pos[1]), self.path, self.goal))
+
+        else:
+            nextObject = ss.getObject(self.pos[0], self.pos[1] + 20)[0]
+            if nextObject == "wall":
+                nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20), self.path, self.goal, nextObject.cost))
+            else:
+                nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20), self.path, self.goal, 1))
+
+            nextObject = ss.getObject(self.pos[0], self.pos[1] - 20)[0]
+            if nextObject == "wall":
+                nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20), self.path, self.goal, nextObject.cost))
+            else:
+                nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20), self.path, self.goal, 1))
+
+            nextObject = ss.getObject(self.pos[0] + 20, self.pos[1])[0]
+            if nextObject == "wall":
+                nodes.append(searchNode("right", (self.pos[0] + 20, self.pos[1]), self.path, self.goal, nextObject.cost))
+            else:
+                nodes.append(searchNode("right", (self.pos[0], self.pos[1] - 20), self.path, self.goal, 1))
+
+            nextObject = ss.getObject(self.pos[0] - 20, self.pos[1])[0]
+            if nextObject == "wall":
+                nodes.append(searchNode("left", (self.pos[0] - 20, self.pos[1]), self.path, self.goal, nextObject.cost))
+            else:
+                nodes.append(searchNode("left", (self.pos[0], self.pos[1] - 20), self.path, self.goal, 1))
+
 
         if nodes:
             for i in nodes:
                 if i.direction == reverseDirection(self.direction):
                     nodes.remove(i)
-
         return nodes
 
 
@@ -361,9 +449,15 @@ currentState = stateSpace()
 currentState.addSnake("agent", False)
 currentState.addFood()
 
-wallX = 20
-wallY = 20
-for i in range(1, 5):
+wallX = random.randint(-12, 12) * 20
+wallY = random.randint(-12, 12) * 20
+for i in range(1, 10):
+    currentState.addWall(wallX, wallY)
+    wallX = wallX + 20 * random.choice([-1, 0, 1])
+    wallY = wallY + 20 * random.choice([-1, 0, 1])
+wallX = random.randint(-12, 12) * 20
+wallY = random.randint(-12, 12) * 20
+for i in range(1, 10):
     currentState.addWall(wallX, wallY)
     wallX = wallX + 20 * random.choice([-1, 0, 1])
     wallY = wallY + 20 * random.choice([-1, 0, 1])
@@ -405,7 +499,7 @@ while True:
             """
 
             if len(i.head.directions) == 0:
-                path = i.bfs(currentState, posToTup(currentState.food[0].head))
+                path = i.aStar(currentState, posToTup(currentState.food[0].head))
                 if path is not None:
                     for j in path:
                         i.addDirection(j.direction)
@@ -449,11 +543,11 @@ while True:
 
                 i.addSegment()
                 if i.player:
-                    playerScore += 25
+                    playerScore += j.reward
                     if playerScore > playerHighScore:
                         playerHighScore = playerScore
                 else:
-                    agentScore += 25
+                    agentScore += j.reward
                     if agentScore > agentHighScore:
                         agentHighScore = agentScore
 
