@@ -119,6 +119,17 @@ class stateSpace:
 
         return ["empty", None]
 
+    def getEmpty(self, rand=True):
+        empties = []
+        for x in range(-28, 28):
+            for y in range(-28, 28):
+                if self.getObject(x * 10, y * 10)[0] == "empty":
+                    pos = (x * 10, y * 10)
+                    empties.append(pos)
+
+        if rand:
+            return empties[random.randint(0, len(empties) - 1)]
+
 
 class wall:
     def __init__(self, xPos, yPos):
@@ -151,6 +162,7 @@ class food:
         if yPos is None:
             yPos = random.randint(-290, 290)
         self.head.goto(xPos, yPos)
+
 
 class snake:
     def __init__(self, name, player=True):
@@ -259,9 +271,9 @@ class snake:
 
         while queue:
             currentNode = queue.pop(0)
-            print(f"Current direction: {currentNode.direction}")
-            print(f"Current pos: {currentNode.pos}")
-            print(f"Distance: {getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) }")
+            #print(f"Current direction: {currentNode.direction}")
+            #print(f"Current pos: {currentNode.pos}")
+            #print(f"Distance: {getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) }")
             if getDistance(goal[0], goal[1], currentNode.pos[0], currentNode.pos[1]) < 20:
                 return currentNode.path
             visited.append(currentNode)
@@ -394,8 +406,9 @@ while True:
 
             if len(i.head.directions) == 0:
                 path = i.bfs(currentState, posToTup(currentState.food[0].head))
-                for j in path:
-                    i.addDirection(j.direction)
+                if path is not None:
+                    for j in path:
+                        i.addDirection(j.direction)
 
 
 
@@ -429,8 +442,9 @@ while True:
         for j in currentState.food:
             if j.head.distance(i.head) < 20:
                 print("Snake collision with food")
-                foodX = random.randint(-270, 270)
-                foodY = random.randint(-270, 270)
+                newPos = currentState.getEmpty()
+                foodX = newPos[0]
+                foodY = newPos[1]
                 j.head.goto(foodX, foodY)
 
                 i.addSegment()
