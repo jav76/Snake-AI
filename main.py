@@ -136,6 +136,24 @@ class stateSpace:
         if rand:
             return empties[random.randint(0, len(empties) - 1)]
 
+    def closeToFood(self, currentSnake, currentFood,  distance=40):
+        headPos = posToTup(currentSnake.head)
+        foodPos = posToTup(currentFood.head)
+        return getDistance(headPos[0], headPos[1], foodPos[0], foodPos[1]) <= distance
+
+    def inCorner(self, currentSnake):
+        corners = [
+            [270, 270],
+            [-270, 270],
+            [270, -270],
+            [-270, -270]
+        ]
+        headPos = posToTup(currentSnake.head)
+        for i in corners:
+            if getDistance(headPos[0], headPos[1], i[0], i[1]) <= 20:
+                return True
+        return False
+
 
 class wall:
     def __init__(self, xPos, yPos, cost=10):
@@ -530,7 +548,7 @@ while True:
                 if segment.distance(i.head) < 20:
                     print("Snake collision with other snake")
                     collision[0] = True
-                    collision.append([i, "other"])
+                    collision.append([i, "other", j])
 
         # Snake collision with food
         for j in currentState.food:
@@ -556,16 +574,17 @@ while True:
             if j.head.distance(i.head) < 20:
                 print("Snake collision with wall")
                 collision[0] = True
-                collision.append([i, "wall"])
+                collision.append([i, "wall", j])
 
         # Snake collision with trap
         for j in currentState.traps:
             if j.head.distance(i.head) < 20:
                 print("Snake collision with trap")
                 collision[0] = True
-                collision.append([i, "trap"])
+                collision.append([i, "trap", j])
 
     if collision[0]:
+        collision[2].directions.clear() # clear directions queue after a collision
         message = ""
         if collision[1][0].player:
             message += "Player collided with "
