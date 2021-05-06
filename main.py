@@ -4,6 +4,14 @@ import random
 
 random.seed()
 delay = 0.1
+powerPelletDuration = 5
+
+"""
+TODO:
+Add power pellets in addition to regular food that give snake power to delete traps within some duration (done?)
+Add noisy sensor for position of traps
+Add parameters for running different algorithms and update README for usage
+"""
 
 # Score
 playerScore = 50
@@ -47,6 +55,7 @@ class stateSpace:
     def __init__(self):
         self.snakes = []
         self.food = []
+        self.powerPellets = []
         self.walls = []
         self.traps = []
     def addSnake(self, name, player=True):
@@ -57,6 +66,13 @@ class stateSpace:
         if self.isEmpty(xPos, yPos):
             newFood = food(xPos, yPos)
             self.food.append(newFood)
+            return 0
+        else:
+            return 1
+    def addPowerPellet(self, xPos=None, yPos=None):
+        if self.isEmpty(xPos, yPos):
+            newPellet = powerPellet(xPos, yPos)
+            self.powerPellets.append(newPellet)
             return 0
         else:
             return 1
@@ -104,6 +120,13 @@ class stateSpace:
             dist = getDistance(pos[0], pos[1], xPos, yPos)
             if i.head.distance((xPos, yPos)) < 20:
                 return ["food", i]
+
+        # power pellets
+        for i in self.powerPellets:
+            pos = posToTup(i.head)
+            dist = getDistance(pos[0], pos[1], xPos, yPos)
+            if i.head.distance((xPos, yPos)) < 20:
+                return ["powerPellet", i]
 
         # walls
         for i in self.walls:
@@ -190,6 +213,20 @@ class food:
         self.head.goto(xPos, yPos)
         self.reward = reward
 
+class powerPellet:
+    def __init__(self, xPos=None, yPos=None, reward=20):
+        self.head = turtle.Turtle()
+        self.head.speed(0)
+        self.head.shape("arrow")
+        self.head.color("green")
+        self.head.penup()
+        if xPos is None:
+            xPos = random.randint(-290, 290)
+        if yPos is None:
+            yPos = random.randint(-290, 290)
+        self.head.goto(xPos, yPos)
+        self.reward = reward
+
 
 class snake:
     def __init__(self, name, player=True):
@@ -205,6 +242,8 @@ class snake:
         self.head.goto(0, 0)
         self.head.directions = []
         self.head.direction = "up"
+        self.powered = False
+        self.powerDuration = 0
         if self.player:
             self.head.color("#00FF00") # Green
             wn.listen()
@@ -384,19 +423,19 @@ class searchNode:
         if self.cost == False:
             # If the next space up is empty, add it to the successor nodes list
             nextObject = ss.getObject(self.pos[0], self.pos[1] + 20)[0]
-            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food" or nextObject == "powerPellet":
                 nodes.append(searchNode("up", (self.pos[0], self.pos[1] + 20), self.path, self.goal))
 
             nextObject = ss.getObject(self.pos[0], self.pos[1] - 20)[0]
-            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food" or nextObject == "powerPellet":
                 nodes.append(searchNode("down", (self.pos[0], self.pos[1] - 20), self.path, self.goal))
 
             nextObject = ss.getObject(self.pos[0] + 20, self.pos[1])[0]
-            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food" or nextObject == "powerPellet":
                 nodes.append(searchNode("right", (self.pos[0] + 20, self.pos[1]), self.path, self.goal))
 
             nextObject = ss.getObject(self.pos[0] - 20, self.pos[1])[0]
-            if nextObject == "empty" or nextObject == "trap" or nextObject == "food":
+            if nextObject == "empty" or nextObject == "trap" or nextObject == "food" or nextObject == "powerPellet":
                 nodes.append(searchNode("left", (self.pos[0] - 20, self.pos[1]), self.path, self.goal))
 
         else:
@@ -466,6 +505,11 @@ currentState = stateSpace()
 #currentState.addFood()
 currentState.addSnake("agent", False)
 currentState.addFood()
+currentState.addPowerPellet()
+currentState.addPowerPellet()
+currentState.addPowerPellet()
+currentState.addPowerPellet()
+
 
 wallX = random.randint(-12, 12) * 20
 wallY = random.randint(-12, 12) * 20
@@ -569,6 +613,14 @@ while True:
                     if agentScore > agentHighScore:
                         agentHighScore = agentScore
 
+        # Snake collision with power pellet
+        for j in currentState.powerPellets:
+            if j.head.distance(i.head) < 20:
+                print("Snake collision with power pellet")
+                i.powered = True
+                i.poweredDuration = powerPelletDuration
+                i.head.color("green")
+
         # Snake collision with wall
         for j in currentState.walls:
             if j.head.distance(i.head) < 20:
@@ -582,9 +634,11 @@ while True:
                 print("Snake collision with trap")
                 collision[0] = True
                 collision.append([i, "trap", j])
+                if i.powered:
+                    j.head.hideturtle()
 
     if collision[0]:
-        collision[2].directions.clear() # clear directions queue after a collision
+        collision[1][2].directions.clear() # clear directions queue after a collision
         message = ""
         if collision[1][0].player:
             message += "Player collided with "
@@ -631,6 +685,11 @@ while True:
     for i in currentState.snakes:
         if i.head.directions:
             i.move()
+        if i.powered:
+            i.poweredDuration = i.poweredDuration - delay
+            if i.poweredDuration < delay:
+                i.powered = False
+                i.head.color("grey")
         if i.head.direction != "stop":
             if i.player:
                 playerScore -= 1
