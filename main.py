@@ -8,9 +8,16 @@ powerPelletDuration = 5
 
 """
 TODO:
-Add power pellets in addition to regular food that give snake power to delete traps within some duration (done?)
-Add noisy sensor for position of traps
-Add parameters for running different algorithms and update README for usage (done?)
+    Add power pellets in addition to regular food that give snake power to delete traps within some duration (done?)
+    Add noisy sensor for position of traps
+    Add parameters for running different algorithms and update README for usage (done?)
+    
+    After semester ends?:
+        Refactor into separate files
+        Add ability to specify custom wall configurations
+        Better handling of wall collisions. (Wall collisions end in loss or just have additional cost??)
+        Fix snake getting "stuck" on edges when search ends in the snake oriented facing a wall
+        Possibly add some sort of verbose or demo flag that displays search algorithm's steps similar to pacman demos
 """
 
 # Score
