@@ -652,6 +652,7 @@ if __name__ == "__main__":
                     i.powered = True
                     i.poweredDuration = powerPelletDuration
                     i.head.color("green")
+                    j.head.goto(1000, 1000)
 
             # Snake collision with wall
             for j in currentState.walls:
@@ -665,7 +666,7 @@ if __name__ == "__main__":
                 if j.head.distance(i.head) < 20:
                     print("Snake collision with trap")
                     if i.powered:
-                        j.head.hideturtle()
+                        j.head.goto(1000, 1000)
                     else:
                         collision[0] = True
                         collision.append([i, "trap", j])
@@ -695,7 +696,7 @@ if __name__ == "__main__":
             wn.update()
             time.sleep(2)
             collision[1][0].head.direction = "stop"
-            collision[1][0].head.goto(0, 0)
+            collision[1][0].head.goto(currentState.getEmpty())
             if collision[1][0].player:
                 collision[1][0].head.color("#00FF00")
             else:
