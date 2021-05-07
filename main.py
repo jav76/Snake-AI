@@ -1,5 +1,5 @@
 import turtle
-import time
+import time, sys, argparse
 import random
 
 random.seed()
@@ -176,6 +176,9 @@ class stateSpace:
             if getDistance(headPos[0], headPos[1], i[0], i[1]) <= 20:
                 return True
         return False
+
+    def noisySensor(self):
+        return NotImplemented
 
 
 class wall:
@@ -484,220 +487,251 @@ playerPen.goto(-280, 240)
 playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align = "left",
                 font=("Courier", 16, "normal"))
 """
-agentPen = turtle.Turtle()
-agentPen.speed(0)
-agentPen.penup()
-agentPen.hideturtle()
-agentPen.goto(280, 240)
-agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align = "right",
-               font=("Courier", 16, "normal"))
 
-miscPen = turtle.Turtle()
-miscPen.speed(0)
-miscPen.penup()
-miscPen.hideturtle()
-miscPen.goto(0, 200)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    algorithmGroup = parser.add_mutually_exclusive_group()
+    algorithmGroup.add_argument("-a", "--algorithm",
+                                type = str,
+                                help = "Specify which search algorithm to use.",
+                                choices = ["dfs", "bfs", "ucs", "astar"],
+                                default = "astar"
+                                )
+    args = parser.parse_args()
 
 
+    algorithm = args.algorithm
 
-currentState = stateSpace()
-#currentState.addSnake("player")
-#currentState.addFood()
-currentState.addSnake("agent", False)
-currentState.addFood()
-currentState.addPowerPellet()
-currentState.addPowerPellet()
-currentState.addPowerPellet()
-currentState.addPowerPellet()
-
-
-wallX = random.randint(-12, 12) * 20
-wallY = random.randint(-12, 12) * 20
-for i in range(1, 10):
-    currentState.addWall(wallX, wallY)
-    wallX = wallX + 20 * random.choice([-1, 0, 1])
-    wallY = wallY + 20 * random.choice([-1, 0, 1])
-wallX = random.randint(-12, 12) * 20
-wallY = random.randint(-12, 12) * 20
-for i in range(1, 10):
-    currentState.addWall(wallX, wallY)
-    wallX = wallX + 20 * random.choice([-1, 0, 1])
-    wallY = wallY + 20 * random.choice([-1, 0, 1])
-
-currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
-
-searched = False
-
-wn.update()
-# Main game loop
-while True:
-    wn.update()
-
-    # Agent control
-    for i in currentState.snakes:
-        if not i.player:
-            """
-            rand = random.randint(1, 4)
-            if rand == 1:
-                i.addDirection("up")
-            elif rand == 2:
-                i.addDirection("down")
-            elif rand == 3:
-                i.addDirection("left")
-            else:
-                i.addDirection("right")
-            """
-
-            """
-            # Run a search one time at the start and add the search path to the direction queue
-            # Searches currently seem to have an issue with "switching directions" from the initial given direction
-            if not searched:
-                i.head.direction = "down"
-                path = i.bfs(currentState, posToTup(currentState.food[0].head))
-                for j in path:
-                    print(j.direction)
-                    i.addDirection(j.direction)
-                searched = True
-            """
-
-            if len(i.head.directions) == 0:
-                path = i.aStar(currentState, posToTup(currentState.food[0].head))
-                if path is not None:
-                    for j in path:
-                        i.addDirection(j.direction)
-
-
-
-
-    # Check for a collisions
-    collision = [False]
-    for i in currentState.snakes:
-
-        # Single snake collision with the border
-        if i.head.xcor() > 290 or i.head.xcor() < -290 or i.head.ycor() > 290 or i.head.ycor() < -290:
-            collision[0] = True
-            print("Snake collision with border")
-            collision.append([i, "border"])
-
-        # Snake collision with itself
-        for segment in i.segments:
-            if segment.distance(i.head) < 20:
-                collision[0] = True
-                print("Snake collision with itself")
-                collision.append([i, "self"])
-
-        # Snake collision with other snake
-        for j in currentState.snakes:
-            for segment in j.segments:
-                if segment.distance(i.head) < 20:
-                    print("Snake collision with other snake")
-                    collision[0] = True
-                    collision.append([i, "other", j])
-
-        # Snake collision with food
-        for j in currentState.food:
-            if j.head.distance(i.head) < 20:
-                print("Snake collision with food")
-                newPos = currentState.getEmpty()
-                foodX = newPos[0]
-                foodY = newPos[1]
-                j.head.goto(foodX, foodY)
-
-                i.addSegment()
-                if i.player:
-                    playerScore += j.reward
-                    if playerScore > playerHighScore:
-                        playerHighScore = playerScore
-                else:
-                    agentScore += j.reward
-                    if agentScore > agentHighScore:
-                        agentHighScore = agentScore
-
-        # Snake collision with power pellet
-        for j in currentState.powerPellets:
-            if j.head.distance(i.head) < 20:
-                print("Snake collision with power pellet")
-                i.powered = True
-                i.poweredDuration = powerPelletDuration
-                i.head.color("green")
-
-        # Snake collision with wall
-        for j in currentState.walls:
-            if j.head.distance(i.head) < 20:
-                print("Snake collision with wall")
-                collision[0] = True
-                collision.append([i, "wall", j])
-
-        # Snake collision with trap
-        for j in currentState.traps:
-            if j.head.distance(i.head) < 20:
-                print("Snake collision with trap")
-                collision[0] = True
-                collision.append([i, "trap", j])
-                if i.powered:
-                    j.head.hideturtle()
-
-    if collision[0]:
-        collision[1][2].directions.clear() # clear directions queue after a collision
-        message = ""
-        if collision[1][0].player:
-            message += "Player collided with "
-        else:
-            message += "Agent collided with "
-        if collision[1][1] == "border":
-            message += "the border."
-        elif collision[1][1] == "self":
-            message += "themselves."
-        elif collision[1][1] == "wall":
-            message += "a wall"
-        elif collision[1][1] == "trap":
-            message += "a trap"
-        elif collision[1][1] == "other":
-            message += "another snake."
-        miscPen.write(message, align="center", font=("Courier", 16, "normal"))
-
-
-        collision[1][0].head.color("red")
-        wn.update()
-        time.sleep(2)
-        collision[1][0].head.direction = "stop"
-        collision[1][0].head.goto(0, 0)
-        if collision[1][0].player:
-            collision[1][0].head.color("#00FF00")
-        else:
-            collision[1][0].head.color("grey")
-        for i in currentState.snakes:
-            for j in i.segments:
-                j.goto(1000, 1000)
-            i.segments.clear()
-        playerScore = 50
-        agentScore = 50
-    """
-    playerPen.clear()
-    playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align="left",
-                    font=("Courier", 16, "normal"))
-    """
-    agentPen.clear()
-    agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align="right",
+    agentPen = turtle.Turtle()
+    agentPen.speed(0)
+    agentPen.penup()
+    agentPen.hideturtle()
+    agentPen.goto(280, 240)
+    agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align = "right",
                    font=("Courier", 16, "normal"))
-    miscPen.clear()
 
-    for i in currentState.snakes:
-        if i.head.directions:
-            i.move()
-        if i.powered:
-            i.poweredDuration = i.poweredDuration - delay
-            if i.poweredDuration < delay:
-                i.powered = False
-                i.head.color("grey")
-        if i.head.direction != "stop":
-            if i.player:
-                playerScore -= 1
+    miscPen = turtle.Turtle()
+    miscPen.speed(0)
+    miscPen.penup()
+    miscPen.hideturtle()
+    miscPen.goto(0, 200)
+
+
+
+    currentState = stateSpace()
+    #currentState.addSnake("player")
+    #currentState.addFood()
+    currentState.addSnake("agent", False)
+    currentState.addFood()
+    currentState.addPowerPellet()
+    currentState.addPowerPellet()
+    currentState.addPowerPellet()
+    currentState.addPowerPellet()
+
+
+    wallX = random.randint(-12, 12) * 20
+    wallY = random.randint(-12, 12) * 20
+    for i in range(1, 10):
+        currentState.addWall(wallX, wallY)
+        wallX = wallX + 20 * random.choice([-1, 0, 1])
+        wallY = wallY + 20 * random.choice([-1, 0, 1])
+    wallX = random.randint(-12, 12) * 20
+    wallY = random.randint(-12, 12) * 20
+    for i in range(1, 10):
+        currentState.addWall(wallX, wallY)
+        wallX = wallX + 20 * random.choice([-1, 0, 1])
+        wallY = wallY + 20 * random.choice([-1, 0, 1])
+
+    currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
+    currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
+    currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
+    currentState.addTrap(random.randint(-14, 14) * 20, random.randint(-14, 14) * 20)
+
+
+    searched = False
+
+    wn.update()
+    # Main game loop
+    while True:
+        wn.update()
+
+        # Agent control
+        for i in currentState.snakes:
+            if not i.player:
+                """
+                rand = random.randint(1, 4)
+                if rand == 1:
+                    i.addDirection("up")
+                elif rand == 2:
+                    i.addDirection("down")
+                elif rand == 3:
+                    i.addDirection("left")
+                else:
+                    i.addDirection("right")
+                """
+
+                """
+                # Run a search one time at the start and add the search path to the direction queue
+                # Searches currently seem to have an issue with "switching directions" from the initial given direction
+                if not searched:
+                    i.head.direction = "down"
+                    path = i.bfs(currentState, posToTup(currentState.food[0].head))
+                    for j in path:
+                        print(j.direction)
+                        i.addDirection(j.direction)
+                    searched = True
+                """
+
+                if len(i.head.directions) == 0:
+                    path = []
+                    match algorithm:
+                        case "dfs":
+                            path = i.dfs(currentState, posToTup(currentState.food[0].head))
+                        case "bfs":
+                            path = i.bfs(currentState, posToTup(currentState.food[0].head))
+                        case "ucs":
+                            path = i.ucs(currentState, posToTup(currentState.food[0].head))
+                        case "astar":
+                            path = i.aStar(currentState, posToTup(currentState.food[0].head))
+
+                    if path is not None:
+                        for j in path:
+                            i.addDirection(j.direction)
+
+
+
+
+        # Check for a collisions
+        collision = [False]
+        for i in currentState.snakes:
+
+            # Single snake collision with the border
+            if i.head.xcor() > 290 or i.head.xcor() < -290 or i.head.ycor() > 290 or i.head.ycor() < -290:
+                collision[0] = True
+                print("Snake collision with border")
+                collision.append([i, "border"])
+
+            # Snake collision with itself
+            for segment in i.segments:
+                if segment.distance(i.head) < 20:
+                    collision[0] = True
+                    print("Snake collision with itself")
+                    collision.append([i, "self"])
+
+            # Snake collision with other snake
+            for j in currentState.snakes:
+                for segment in j.segments:
+                    if segment.distance(i.head) < 20:
+                        print("Snake collision with other snake")
+                        collision[0] = True
+                        collision.append([i, "other", j])
+
+            # Snake collision with food
+            for j in currentState.food:
+                if j.head.distance(i.head) < 20:
+                    print("Snake collision with food")
+                    newPos = currentState.getEmpty()
+                    foodX = newPos[0]
+                    foodY = newPos[1]
+                    j.head.goto(foodX, foodY)
+
+                    i.addSegment()
+                    if i.player:
+                        playerScore += j.reward
+                        if playerScore > playerHighScore:
+                            playerHighScore = playerScore
+                    else:
+                        agentScore += j.reward
+                        if agentScore > agentHighScore:
+                            agentHighScore = agentScore
+
+            # Snake collision with power pellet
+            for j in currentState.powerPellets:
+                if j.head.distance(i.head) < 20:
+                    print("Snake collision with power pellet")
+                    i.powered = True
+                    i.poweredDuration = powerPelletDuration
+                    i.head.color("green")
+
+            # Snake collision with wall
+            for j in currentState.walls:
+                if j.head.distance(i.head) < 20:
+                    print("Snake collision with wall")
+                    collision[0] = True
+                    collision.append([i, "wall", j])
+
+            # Snake collision with trap
+            for j in currentState.traps:
+                if j.head.distance(i.head) < 20:
+                    print("Snake collision with trap")
+                    if i.powered:
+                        j.head.hideturtle()
+                    else:
+                        collision[0] = True
+                        collision.append([i, "trap", j])
+
+
+        if collision[0]:
+            collision[1][0].head.directions.clear() # clear directions queue after a collision
+            message = ""
+            if collision[1][0].player:
+                message += "Player collided with "
             else:
-                agentScore -= 1
+                message += "Agent collided with "
+            if collision[1][1] == "border":
+                message += "the border."
+            elif collision[1][1] == "self":
+                message += "themselves."
+            elif collision[1][1] == "wall":
+                message += "a wall"
+            elif collision[1][1] == "trap":
+                message += "a trap"
+            elif collision[1][1] == "other":
+                message += "another snake."
+            miscPen.write(message, align="center", font=("Courier", 16, "normal"))
 
-    time.sleep(delay)
 
-wn.mainloop()
+            collision[1][0].head.color("red")
+            wn.update()
+            time.sleep(2)
+            collision[1][0].head.direction = "stop"
+            collision[1][0].head.goto(0, 0)
+            if collision[1][0].player:
+                collision[1][0].head.color("#00FF00")
+            else:
+                collision[1][0].head.color("grey")
+            for i in currentState.snakes:
+                for j in i.segments:
+                    j.goto(1000, 1000)
+                i.segments.clear()
+            playerScore = 50
+            agentScore = 50
+        """
+        playerPen.clear()
+        playerPen.write(f"Player score: {playerScore}\nHigh score: {playerHighScore}", align="left",
+                        font=("Courier", 16, "normal"))
+        """
+        agentPen.clear()
+        agentPen.write(f"Agent score: {agentScore}\nHigh score: {agentHighScore}", align="right",
+                       font=("Courier", 16, "normal"))
+        miscPen.clear()
+
+        for i in currentState.snakes:
+            if i.head.directions:
+                i.move()
+            if i.powered:
+                i.poweredDuration = i.poweredDuration - delay
+                if i.poweredDuration < delay:
+                    i.powered = False
+                    i.head.color("grey")
+            if i.head.direction != "stop":
+                if i.player:
+                    playerScore -= 1
+                else:
+                    agentScore -= 1
+
+        time.sleep(delay)
+
+    wn.mainloop()
 
 # Based on snake code by by @TokyoEdTech
