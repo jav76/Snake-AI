@@ -10,7 +10,7 @@ powerPelletDuration = 5
 TODO:
 Add power pellets in addition to regular food that give snake power to delete traps within some duration (done?)
 Add noisy sensor for position of traps
-Add parameters for running different algorithms and update README for usage
+Add parameters for running different algorithms and update README for usage (done?)
 """
 
 # Score
