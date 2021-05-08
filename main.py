@@ -1,5 +1,5 @@
 import turtle
-import time, sys, argparse
+import time, sys, argparse, math
 import random
 
 random.seed()
@@ -166,6 +166,49 @@ class stateSpace:
         if rand:
             return empties[random.randint(0, len(empties) - 1)]
 
+    def getNearest(self, object = "trap", currentSnake = None):
+        if currentSnake == None:
+            currentSnake = self.snakes[0]
+        nearest = [10000, None]
+        for x in range(-28, 28):
+            for y in range(-28, 28):
+                currentObject = self.getObject(x * 10, y * 10)
+                if currentObject[0] == object:
+                    currentDistance = currentObject[1].head.distance(currentSnake.head)
+                    if currentDistance < nearest[0]:
+                        nearest = [currentDistance, currentObject[1]]
+
+        return nearest
+
+    def noisySensor(self, maxDist = 2):
+        sensorResults = []
+        nearestTrap = self.getNearest()[1]
+        trapX = nearestTrap.head.xcor()
+        trapY = nearestTrap.head.ycor()
+        for x in range(math.floor(trapX / 10) - 2, math.floor(trapX / 10) + 2):
+            for y in range(math.floor(trapY / 10) - 2, math.floor(trapY / 10) + 2):
+                currentObject = self.getObject(x * 10, y * 10)
+                trapManhattan = getManhattan(x * 10, y * 10, trapX, trapY)
+                if trapManhattan < 20: # Distance of "0 blocks" to trap
+                    sensorResults.append([0, currentObject, (x * 10, y * 10)])
+                elif trapManhattan < 40: # Distance of "1 block" to trap
+                    sensorResults.append([1, currentObject, (x * 10, y * 10)])
+                else: # Distance of "2 blocks" to trap
+                    sensorResults.append([2, currentObject, (x * 10, y * 10)])
+
+        distributionOutcome = random.choices(
+            [0, 1, 2],
+            weights=[0.7, 0.2, 0.1]
+            # Probability distribution
+        )
+
+        for i in sensorResults:
+            if i[0] != distributionOutcome:
+                sensorResults.remove(i)
+
+        # Return a randomly selected space within the chosen distance from distribution
+        return random.choice(sensorResults)
+
     def closeToFood(self, currentSnake, currentFood,  distance=40):
         headPos = posToTup(currentSnake.head)
         foodPos = posToTup(currentFood.head)
@@ -183,10 +226,6 @@ class stateSpace:
             if getDistance(headPos[0], headPos[1], i[0], i[1]) <= 20:
                 return True
         return False
-
-    def noisySensor(self):
-        return NotImplemented
-
 
 class wall:
     def __init__(self, xPos, yPos, cost=10):
@@ -504,10 +543,16 @@ if __name__ == "__main__":
                                 choices = ["dfs", "bfs", "ucs", "astar"],
                                 default = "astar"
                                 )
+    parser.add_argument("-s", "--sensor",
+                        type = bool,
+                        help = "Show noisy sensor readings after each step",
+                        default = False
+    )
     args = parser.parse_args()
 
 
     algorithm = args.algorithm
+
 
     agentPen = turtle.Turtle()
     agentPen.speed(0)
@@ -727,6 +772,10 @@ if __name__ == "__main__":
         for i in currentState.snakes:
             if i.head.directions:
                 i.move()
+                if args.sensor:
+                    sensorReading = currentState.noisySensor()
+                    sensorDistance = getManhattan(sensorReading[2][0], sensorReading[2][1], i.head.xcor(), i.head.ycor())
+                    print(f"Noise sensor reading pos {sensorReading[2]} distance {sensorDistance}")
             if i.powered:
                 i.poweredDuration = i.poweredDuration - delay
                 if i.poweredDuration < delay:
