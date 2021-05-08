@@ -546,6 +546,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--sensor",
                         type = bool,
                         help = "Show noisy sensor readings after each step",
+                        choices = ["true", "false"],
                         default = False
     )
     args = parser.parse_args()
