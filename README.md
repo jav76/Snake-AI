@@ -10,4 +10,7 @@ In it's current state, this game demonstrates search algorithms including depth 
 ### Usage
 A python interpreter version >= 3.10 is required
 
-The argument -a or --algorithm can be defined to specify which search algorithm to use. 
+main.py can be ran with arguments specifying operation. See -h, --help argument for details
+```bash
+python.exe main.py --help
+```
